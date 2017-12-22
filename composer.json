@@ -22,9 +22,6 @@
     "require-dev": {
     },
     "autoload": {
-        "files": [
-            "phpseclib/bootstrap.php"
-        ],
         "psr-4": {
             "TradeFace\\Bittrex\\": "tradeface/bittrex/src"
         }
