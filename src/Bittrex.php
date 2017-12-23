@@ -39,12 +39,18 @@ const PROTECTION_PUB = 'pub';  # public methods
 const PROTECTION_PRV = 'prv';  # authenticated methods
 
 
-class Bittrex{
+class Bittrex
+{
     /*
     Used for requesting Bittrex with API key and API secret
     */
 
-    public function __construct(string $api_key, string $api_secret, int $calls_per_second=1, $api_version=API_V1_1){
+    public function __construct(
+        string $api_key, 
+        string $api_secret, 
+        int $calls_per_second=1, 
+        $api_version=API_V1_1
+    ) {
         $this->api_key = $api_key;
         $this->api_secret = $api_secret;
         $this->call_rate = 1.0 / $calls_per_second;
@@ -52,21 +58,26 @@ class Bittrex{
         $this->api_version = $api_version;
     }
 
-    private function wait(){
+    private function wait()
+    {
 
-        if ($this->last_call == null){
+        if ($this->last_call == null) {
             $this->last_call = time();
         } else {
             $now = time();
             $passed = $now - $this->last_call;
-            if ($passed < $this->call_rate){
+            if ($passed < $this->call_rate) {
                 sleep($this->call_rate - $passed);
             }
             $this->last_call = time();
         }
     }
 
-    private function _api_query(array $path_dict, string $protection=PROTECTION_PUB, $params = null){
+    private function _api_query(
+        array $path_dict, 
+        string $protection=PROTECTION_PUB, 
+        $params = null
+    ) {
         /*
         Queries Bittrex
         :param $request_url: fully-formed URL to request
@@ -75,8 +86,8 @@ class Bittrex{
         :rtype : object
         */
 
-        if (!array_key_exists($this->api_version, $path_dict)){
-            echo sprintf('method call not available under API version %s',($this->api_version));
+        if (!array_key_exists($this->api_version, $path_dict)) {
+            echo sprintf('method call not available under API version %s', ($this->api_version));
             return;
         }
 
@@ -85,41 +96,39 @@ class Bittrex{
 
         $uri  = $request_url;
 
-		if ($protection != PROTECTION_PUB){
-			$params['apikey'] = $this->api_key;
-			$params['nonce']  = time();
-		}
-
-		if (!empty($params)) {
-			$uri .= http_build_query($params);
+        if ($protection != PROTECTION_PUB) {
+            $params['apikey'] = $this->api_key;
+            $params['nonce']  = time();
         }
-        d($uri);
 
-		$sign = hash_hmac ('sha512', $uri, $this->api_secret);
+        if (!empty($params)) {
+            $uri .= http_build_query($params);
+        }
+
+        $sign = hash_hmac('sha512', $uri, $this->api_secret);
 
         $this->wait();
 
-		$ch = curl_init ($uri);
-		curl_setopt ($ch, CURLOPT_HTTPHEADER, array('apisign: '.$sign));
-		curl_setopt ($ch, CURLOPT_RETURNTRANSFER, true);
-		$result = curl_exec($ch);
-		
-		if (curl_errno($ch)) { 
-			throw new \Exception(curl_error($ch));
-		}
-
-		$answer = json_decode($result);
+        $ch = curl_init($uri);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('apisign: '.$sign));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $result = curl_exec($ch);
         
-		if (isset($answer->success) == false) {
-            d('Some Ting Wong');
-            d($result);
-			return null;
-		}
+        if (curl_errno($ch)) { 
+            throw new \Exception(curl_error($ch));
+        }
 
-		return $answer->result;
+        $answer = json_decode($result);
+        
+        if (isset($answer->success) == false) { 
+            return null;
+        }
+
+        return $answer->result;
     }
 
-    public function get_markets(){
+    public function get_markets()
+    {
         /*
         Used to get the open and available trading markets
         at Bittrex along with other meta data.
@@ -145,12 +154,15 @@ class Bittrex{
         :return: Available market info in JSON
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/public/getmarkets'
-        ], PROTECTION_PUB);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/public/getmarkets'
+            ], PROTECTION_PUB
+        );
     }
 
-    public function get_currencies(){
+    public function get_currencies()
+    {
         /*
         Used to get all supported currencies at Bittrex
         along with other meta data.
@@ -160,13 +172,16 @@ class Bittrex{
         :return: Supported currencies info in JSON
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/public/getcurrencies',
-            API_V2_0 => '/pub/Currencies/GetCurrencies'
-        ], PROTECTION_PUB);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/public/getcurrencies',
+                API_V2_0 => '/pub/Currencies/GetCurrencies'
+            ], PROTECTION_PUB
+        );
     }
 
-    public function get_ticker(string $market){
+    public function get_ticker(string $market)
+    {
         /*
         Used to get the current tick values for a market.
         Endpoints:
@@ -177,14 +192,17 @@ class Bittrex{
         :return: Current values for given market in JSON
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/public/getticker'
-        ], PROTECTION_PUB, [
-            'market' => $market
-        ]);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/public/getticker'
+            ], PROTECTION_PUB, [
+                'market' => $market
+            ]
+        );
     }
 
-    public function get_market_summaries(){
+    public function get_market_summaries()
+    {
         /*
         Used to get the last 24 hour summary of all active exchanges
         Endpoint:
@@ -193,13 +211,16 @@ class Bittrex{
         :return: Summaries of active exchanges in JSON
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/public/getmarketsummaries',
-            API_V2_0 => '/pub/Markets/GetMarketSummaries'
-        ], PROTECTION_PUB);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/public/getmarketsummaries',
+                API_V2_0 => '/pub/Markets/GetMarketSummaries'
+            ], PROTECTION_PUB
+        );
     }
 
-    public function get_marketsummary(string $market){//not reliable
+    public function get_marketsummary(string $market)//not reliable
+    { 
         /*
         Used to get the last 24 hour summary of all active
         exchanges in specific coin
@@ -211,16 +232,19 @@ class Bittrex{
         :return: Summaries of active exchanges of a coin in JSON 
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/public/getmarketsummary',
-            API_V2_0 => '/pub/Market/GetMarketSummary'
-        ], PROTECTION_PUB, [
-            'market' => $market, 
-            'marketName' => $market
-        ]);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/public/getmarketsummary',
+                API_V2_0 => '/pub/Market/GetMarketSummary'
+            ], PROTECTION_PUB, [
+                'market' => $market, 
+                'marketName' => $market
+            ]
+        );
     }
 
-    public function get_orderbook(string $market, string $depth_type=BOTH_ORDERBOOK){
+    public function get_orderbook(string $market, string $depth_type=BOTH_ORDERBOOK)
+    {
         /*
         Used to get retrieve the orderbook for a given market.
         The depth_type parameter is IGNORED under v2.0 and both orderbooks are aleways returned
@@ -236,17 +260,20 @@ class Bittrex{
         :return: Orderbook of market in JSON
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/public/getorderbook',
-            API_V2_0 => '/pub/Market/GetMarketOrderBook'
-        ], PROTECTION_PUB, [
-            'market' => $market, 
-            'marketname' => $market, 
-            'type' => $depth_type
-        ]);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/public/getorderbook',
+                API_V2_0 => '/pub/Market/GetMarketOrderBook'
+            ], PROTECTION_PUB, [
+                'market' => $market, 
+                'marketname' => $market, 
+                'type' => $depth_type
+            ]
+        );
     }
 
-    public function get_market_history(string $market){
+    public function get_market_history(string $market)
+    {
         /*
         Used to retrieve the latest trades that have occurred for a
         specific market.
@@ -271,15 +298,18 @@ class Bittrex{
         :return: Market history in JSON
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/public/getmarkethistory',
-        ], PROTECTION_PUB, [
-            'market' => $market, 
-            'marketname' => $market
-        ]);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/public/getmarkethistory',
+            ], PROTECTION_PUB, [
+                'market' => $market, 
+                'marketname' => $market
+            ]
+        );
     }
 
-    public function buy_limit(string $market, float $quantity, float $rate){
+    public function buy_limit(string $market, float $quantity, float $rate)
+    {
         /*
         Used to place a buy order in a specific market. Use buylimit to place
         limit orders Make sure you have the proper permissions set on your
@@ -297,16 +327,19 @@ class Bittrex{
         :return:
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/market/buylimit',
-        ], PROTECTION_PRV, [
-            'market' => $market,
-            'quantity' => $quantity,
-            'rate' => $rate
-        ]);
+        return $this->_api_query(
+            [
+                PI_V1_1 => '/market/buylimit',
+            ], PROTECTION_PRV, [
+                'market' => $market,
+                'quantity' => $quantity,
+                'rate' => $rate
+            ]
+        );
     }
 
-    public function sell_limit(string $market, float $quantity, float $rate){
+    public function sell_limit(string $market, float $quantity, float $rate)
+    {
         /*
         Used to place a sell order in a specific market. Use selllimit to place
         limit orders Make sure you have the proper permissions set on your
@@ -324,16 +357,19 @@ class Bittrex{
         :return:
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/market/selllimit'
-        ], PROTECTION_PRV, [
-            'market' => $market,
-            'quantity' => $quantity,
-            'rate' => $rate
-        ]);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/market/selllimit'
+            ], PROTECTION_PRV, [
+                'market' => $market,
+                'quantity' => $quantity,
+                'rate' => $rate
+            ]
+        );
     }
 
-    public function cancel(string $uuid){
+    public function cancel(string $uuid)
+    {
         /*
         Used to cancel a buy or sell order
         Endpoint:
@@ -344,16 +380,19 @@ class Bittrex{
         :return:
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/market/cancel',
-            API_V2_0 => '/key/market/tradecancel'
-        ], PROTECTION_PRV, [
-            'uuid' => $uuid, 
-            'orderid' => $uuid
-        ]);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/market/cancel',
+                API_V2_0 => '/key/market/tradecancel'
+            ], PROTECTION_PRV, [
+                'uuid' => $uuid, 
+                'orderid' => $uuid
+            ]
+        );
     }
 
-    public function get_open_orders(string $market = null){
+    public function get_open_orders(string $market = null) 
+    {
         /*
         Get all orders that you currently have opened.
         A specific market can be requested.
@@ -365,16 +404,19 @@ class Bittrex{
         :return: Open orders info in JSON
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/market/getopenorders',
-            API_V2_0 => '/key/market/getopenorders'
-        ], PROTECTION_PRV, ($market)?[
-            'market' => $market, 
-            'marketname' => $market
-        ] : null);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/market/getopenorders',
+                API_V2_0 => '/key/market/getopenorders'
+            ], PROTECTION_PRV, ($market)?[
+                'market' => $market, 
+                'marketname' => $market
+            ] : null
+        );
     }
 
-    public function get_balances(){
+    public function get_balances()
+    {
         /*
         Used to retrieve all balances from your account.
         Endpoint:
@@ -394,13 +436,16 @@ class Bittrex{
         :return: Balances info in JSON
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/account/getbalances',
-            API_V2_0 => '/key/balance/getbalances'
-        ], PROTECTION_PRV);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/account/getbalances',
+                API_V2_0 => '/key/balance/getbalances'
+            ], PROTECTION_PRV
+        );
     }
 
-    public function get_balance(string $currency){
+    public function get_balance(string $currency)
+    {
         /*
         Used to retrieve the balance from your account for a specific currency
         Endpoint:
@@ -420,16 +465,19 @@ class Bittrex{
         :return: Balance info in JSON
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/account/getbalance',
-            API_V2_0 => '/key/balance/getbalance'
-        ], PROTECTION_PRV, [
-            'currency' => $currency, 
-            'currencyname' => $currency
-        ]);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/account/getbalance',
+                API_V2_0 => '/key/balance/getbalance'
+            ], PROTECTION_PRV, [
+                'currency' => $currency, 
+                'currencyname' => $currency
+            ]
+        );
     }
 
-    public function get_deposit_address(string $currency){
+    public function get_deposit_address(string $currency)
+    {
         /*
         Used to generate or retrieve an address for a specific currency
         Endpoint:
@@ -440,13 +488,15 @@ class Bittrex{
         :return: Address info in JSON
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/account/getdepositaddress',
-            API_V2_0 => '/key/balance/getdepositaddress'
-        ], PROTECTION_PRV, [
-            'currency' => $currency, 
-            'currencyname' => $currency
-        ]);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/account/getdepositaddress',
+                API_V2_0 => '/key/balance/getdepositaddress'
+            ], PROTECTION_PRV, [
+                'currency' => $currency, 
+                'currencyname' => $currency
+            ]
+        );
     }
 
     public function withdraw(string $currency, float $quantity, string $address){
@@ -464,14 +514,16 @@ class Bittrex{
         :return:
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/account/withdraw',
-            API_V2_0 => '/key/balance/withdrawcurrency'
-        ], PROTECTION_PRV, [
-            'currency' => $currency, 
-            'quantity' => $quantity, 
-            'address' => $address
-        ]);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/account/withdraw',
+                API_V2_0 => '/key/balance/withdrawcurrency'
+            ], PROTECTION_PRV, [
+                'currency' => $currency, 
+                'quantity' => $quantity, 
+                'address' => $address
+            ]
+        );
     }
 
     public function get_order_history(string $market=null){
@@ -486,23 +538,28 @@ class Bittrex{
         :return: order history in JSON
         :rtype : object
         */
-        if ($market){
-            return $this->_api_query([
-                API_V1_1 => '/account/getorderhistory',
-                API_V2_0 => '/key/market/GetOrderHistory'
-            ], PROTECTION_PRV, [
-                'market' => $market, 
-                'marketname' => $market
-            ]);
+        if ($market) {
+            return $this->_api_query(
+                [
+                    API_V1_1 => '/account/getorderhistory',
+                    API_V2_0 => '/key/market/GetOrderHistory'
+                ], PROTECTION_PRV, [
+                    'market' => $market, 
+                    'marketname' => $market
+                ]
+            );
         } else {
-            return $this->_api_query([
-                API_V1_1 => '/account/getorderhistory',
-                API_V2_0 => '/key/orders/getorderhistory'
-            ], PROTECTION_PRV);
+            return $this->_api_query(
+                [
+                    API_V1_1 => '/account/getorderhistory',
+                    API_V2_0 => '/key/orders/getorderhistory'
+                ], PROTECTION_PRV
+            );
         }
     }
 
-    public function get_order($uuid){
+    public function get_order($uuid)
+    {
         /*
         Used to get details of buy or sell order
         Endpoint:
@@ -513,16 +570,19 @@ class Bittrex{
         :return:
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/account/getorder',
-            API_V2_0 => '/key/orders/getorder'
-        ], PROTECTION_PRV, [
-            'uuid' => $uuid, 
-            'orderid' => $uuid
-        ]);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/account/getorder',
+                API_V2_0 => '/key/orders/getorder'
+            ], PROTECTION_PRV, [
+                'uuid' => $uuid, 
+                'orderid' => $uuid
+            ]
+        );
     }
 
-    public function get_withdrawal_history(string $currency=null){
+    public function get_withdrawal_history(string $currency=null)
+    {
         /*
         Used to view your history of withdrawals
         Endpoint:
@@ -534,16 +594,19 @@ class Bittrex{
         :rtype : object
         */
 
-        return $this->_api_query([
-            API_V1_1 => '/account/getwithdrawalhistory',
-            API_V2_0 => '/key/balance/getwithdrawalhistory'
-        ], PROTECTION_PRV, ($currency)?[
-            'currency' => $currency, 
-            'currencyname' => $currency
-        ] : null);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/account/getwithdrawalhistory',
+                API_V2_0 => '/key/balance/getwithdrawalhistory'
+            ], PROTECTION_PRV, ($currency)?[
+                'currency' => $currency, 
+                'currencyname' => $currency
+            ] : null
+        );
     }
 
-    public function get_deposit_history(string $currency=null){
+    public function get_deposit_history(string $currency=null)
+    {
         /*
         Used to view your history of deposits
         Endpoint:
@@ -554,16 +617,19 @@ class Bittrex{
         :return: deposit history in JSON
         :rtype : object
         */
-        return $this->_api_query([
-            API_V1_1 => '/account/getdeposithistory',
-            API_V2_0 => '/key/balance/getdeposithistory'
-        ], PROTECTION_PRV, ($currency)?[
-            'currency' => $currency, 
-            'currencyname' => $currency
-        ] : null);
+        return $this->_api_query(
+            [
+                API_V1_1 => '/account/getdeposithistory',
+                API_V2_0 => '/key/balance/getdeposithistory'
+            ], PROTECTION_PRV, ($currency)?[
+                'currency' => $currency, 
+                'currencyname' => $currency
+            ] : null
+        );
     }
 
-    public function list_markets_by_currency(string $currency){
+    public function list_markets_by_currency(string $currency)
+    {
         /*
         Helper function to see which markets exist for a currency.
         Endpoint: /public/getmarkets
@@ -582,7 +648,8 @@ class Bittrex{
         */
     }
 
-    public function get_wallet_health(){
+    public function get_wallet_health()
+    {
         /*
         Used to view wallet health
         Endpoints:
@@ -590,12 +657,15 @@ class Bittrex{
         2.0 /pub/Currencies/GetWalletHealth
         :return:
         */
-        return $this->_api_query([
-            API_V2_0 => '/pub/Currencies/GetWalletHealth'
-        ], PROTECTION_PUB);
+        return $this->_api_query(
+            [
+                API_V2_0 => '/pub/Currencies/GetWalletHealth'
+            ], PROTECTION_PUB
+        );
     }
 
-    public function get_balance_distribution(){
+    public function get_balance_distribution()
+    {
         /*
         Used to view balance distibution
         Endpoints:
@@ -603,12 +673,15 @@ class Bittrex{
         2.0 /pub/Currency/GetBalanceDistribution
         :return:
         */
-        return $this->_api_query([
-            API_V2_0 => '/pub/Currency/GetBalanceDistribution'
-        ], PROTECTION_PUB);
+        return $this->_api_query(
+            [
+                API_V2_0 => '/pub/Currency/GetBalanceDistribution'
+            ], PROTECTION_PUB
+        );
     }
 
-    public function get_pending_withdrawals(string $currency){
+    public function get_pending_withdrawals(string $currency)
+    {
         /*
         Used to view your pending withdrawls
         Endpoint:
@@ -619,14 +692,17 @@ class Bittrex{
         :return: pending widthdrawls in JSON
         :rtype : list
         */
-        return $this->_api_query([
-            API_V2_0 => '/key/balance/getpendingwithdrawals'
-        ], PROTECTION_PRV, ($currency)?[
-            'currencyname' => $currency
-        ] : null);
+        return $this->_api_query(
+            [
+                API_V2_0 => '/key/balance/getpendingwithdrawals'
+            ], PROTECTION_PRV, ($currency)?[
+                'currencyname' => $currency
+            ] : null
+        );
     }
 
-    public function get_pending_deposits(string $currency){
+    public function get_pending_deposits(string $currency)
+    {
         /*
         Used to view your pending deposits
         Endpoint:
@@ -637,14 +713,17 @@ class Bittrex{
         :return: pending deposits in JSON
         :rtype : list
         */
-        return $this->_api_query([
-            API_V2_0 => '/key/balance/getpendingdeposits'
-        ], PROTECTION_PRV, ($currency)?[
-            'currencyname' => $currency
-        ] : null);
+        return $this->_api_query(
+            [
+                API_V2_0 => '/key/balance/getpendingdeposits'
+            ], PROTECTION_PRV, ($currency)?[
+                'currencyname' => $currency
+            ] : null
+        );
     }
 
-    public function generate_deposit_address(string $currency){
+    public function generate_deposit_address(string $currency)
+    {
         /*
         Generate a deposit address for the specified currency
         Endpoint:
@@ -655,15 +734,24 @@ class Bittrex{
         :return: result of creation operation
         :rtype : object
         */
-        return $this->_api_query([
-            API_V2_0 => '/key/balance/getpendingdeposits'
-        ], PROTECTION_PRV, [
-            'currencyname' => $currency
-        ]);
+        return $this->_api_query(
+            [
+                API_V2_0 => '/key/balance/getpendingdeposits'
+            ], PROTECTION_PRV, [
+                'currencyname' => $currency
+            ]
+        );
     }
 
-    public function trade_sell(string $market, string $order_type, float $quantity, float $rate=null, $time_in_effect=null,
-    $condition_type=CONDITIONTYPE_null, float $target=0.0){
+    public function trade_sell(
+        string $market, 
+        string $order_type, 
+        float $quantity, 
+        float $rate=null, 
+        $time_in_effect=null,
+        $condition_type=CONDITIONTYPE_null, 
+        float $target=0.0
+    ) {
         /*
         Enter a sell order into the book
         Endpoint
@@ -689,21 +777,30 @@ class Bittrex{
         :type target: float
         :return:
         */
-        return $this->_api_query([
-            API_V2_0 => '/key/market/tradesell'
-        ], PROTECTION_PRV, [
-            'marketname' => $market,
-            'ordertype' => $order_type,
-            'quantity' => $quantity,
-            'rate' => $rate,
-            'timeInEffect' => $time_in_effect,
-            'conditiontype' => $condition_type,
-            'target' => $target
-        ]);
+        return $this->_api_query(
+            [
+                API_V2_0 => '/key/market/tradesell'
+            ], PROTECTION_PRV, [
+                'marketname' => $market,
+                'ordertype' => $order_type,
+                'quantity' => $quantity,
+                'rate' => $rate,
+                'timeInEffect' => $time_in_effect,
+                'conditiontype' => $condition_type,
+                'target' => $target
+            ]
+        );
     }
 
-    public function trade_buy(string $market, string $order_type, float $quantity, float $rate=null, $time_in_effect=null,
-                 $condition_type=CONDITIONTYPE_null, float $target=0.0){
+    public function trade_buy(
+        string $market, 
+        string $order_type, 
+        float $quantity, 
+        float $rate=null, 
+        $time_in_effect=null, 
+        $condition_type=CONDITIONTYPE_null, 
+        float $target=0.0
+    ) {
         /*
         Enter a buy order into the book
         Endpoint 
@@ -729,20 +826,23 @@ class Bittrex{
         :type target: float
         :return:
         */
-        return $this->_api_query([
-            API_V2_0 => '/key/market/tradebuy'
-        ], PROTECTION_PRV, [
-            'marketname' => $market,
-            'ordertype' => $order_type,
-            'quantity' => $quantity,
-            'rate' => $rate,
-            'timeInEffect' => $time_in_effect,
-            'conditiontype' => $condition_type,
-            'target' => $target
-        ]);
+        return $this->_api_query(
+            [
+                API_V2_0 => '/key/market/tradebuy'
+            ], PROTECTION_PRV, [
+                'marketname' => $market,
+                'ordertype' => $order_type,
+                'quantity' => $quantity,
+                'rate' => $rate,
+                'timeInEffect' => $time_in_effect,
+                'conditiontype' => $condition_type,
+                'target' => $target
+            ]
+        );
     }
 
-    public function get_candles(string $market, $tick_interval){
+    public function get_candles(string $market, $tick_interval)
+    {
         /*
         Used to get all tick candle for a market.
         Endpoint:
@@ -771,15 +871,18 @@ class Bittrex{
         :rtype : object
         */
 
-        return $this->_api_query([
-            API_V2_0 => '/pub/market/GetTicks'
-        ], PROTECTION_PUB, [
-            'marketName' => $market, 
-            'tickInterval' => $tick_interval
-        ]);
+        return $this->_api_query(
+            [
+                API_V2_0 => '/pub/market/GetTicks'
+            ], PROTECTION_PUB, [
+                'marketName' => $market, 
+                'tickInterval' => $tick_interval
+            ]
+        );
     }
 
-    public function get_latest_candle(string $market, $tick_interval){
+    public function get_latest_candle(string $market, $tick_interval)
+    {
         /*
         Used to get the latest candle for the market.
         Endpoint:
@@ -801,11 +904,13 @@ class Bittrex{
         :rtype : object
         */
 
-        return $this->_api_query([
-            API_V2_0 => '/pub/market/GetLatestTick'
-        ], PROTECTION_PUB, [
-            'marketName' => $market, 
-            'tickInterval' => $tick_interval
-        ]);
+        return $this->_api_query(
+            [
+                API_V2_0 => '/pub/market/GetLatestTick'
+            ], PROTECTION_PUB, [
+                'marketName' => $market, 
+                'tickInterval' => $tick_interval
+            ]
+        );
     }
 }
