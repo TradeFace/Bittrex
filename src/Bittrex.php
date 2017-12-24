@@ -256,7 +256,7 @@ class Bittrex
     {
         /*
         Used to get retrieve the orderbook for a given market.
-        The depth_type parameter is IGNORED under v2.0 and both orderbooks are aleways returned
+        The depth_type parameter is IGNORED under v2.0 and both orderbooks are always returned
         Endpoint:
         1.1 /public/getorderbook
         2.0 /pub/Market/GetMarketOrderBook
@@ -794,8 +794,8 @@ class Bittrex
         string $orderType,
         float $quantity,
         float $rate=null,
-        $timeInEffect=null,
-        $conditionType=CONDITIONTYPE_null,
+        string $timeInEffect=null,
+        string $conditionType=CONDITIONTYPE_NULL,
         float $target=0.0
     ) {
         /*
@@ -845,8 +845,8 @@ class Bittrex
         string $orderType,
         float $quantity,
         float $rate=null,
-        int $timeInEffect=null,
-        $conditionType=CONDITIONTYPE_null,
+        string $timeInEffect=null,
+        string $conditionType=CONDITIONTYPE_NULL,
         float $target=0.0
     ) {
         /*
