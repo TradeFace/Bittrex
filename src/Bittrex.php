@@ -75,7 +75,8 @@ class Bittrex
     private function _apiQuery(
         array $pathDict,
         string $protection=PROTECTION_PUB,
-        $params = null
+        $params = null,
+        $assoc = false
     ) {
         /*
         Queries Bittrex
@@ -120,7 +121,7 @@ class Bittrex
             throw new \Exception(curl_error($curl));
         }
 
-        $answer = json_decode($result);
+        $answer = json_decode($result, $assoc);
         
         if (isset($answer->success) == false) {
             return null;
@@ -891,7 +892,7 @@ class Bittrex
         );
     }
 
-    public function getCandles(string $market, $tickInterval)
+    public function getCandles(string $market, string $tickInterval)
     {
         /*
         Used to get all tick candle for a market.
@@ -929,11 +930,12 @@ class Bittrex
             [
                 'marketName' => $market,
                 'tickInterval' => $tickInterval
-            ]
+            ],
+            true
         );
     }
 
-    public function getLatestCandle(string $market, $tickInterval)
+    public function getLatestCandle(string $market, string $tickInterval)
     {
         /*
         Used to get the latest candle for the market.
@@ -964,7 +966,8 @@ class Bittrex
             [
                 'marketName' => $market,
                 'tickInterval' => $tickInterval
-            ]
+            ],
+            true
         );
     }
 }
