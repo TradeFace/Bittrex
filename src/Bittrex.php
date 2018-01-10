@@ -122,11 +122,16 @@ class Bittrex
         }
 
         $answer = json_decode($result, $assoc);
-        
+
+        if ($assoc) {  
+            if (isset($answer['success']) == false) {
+                return null;
+            }
+            return $answer['result'];
+        }
         if (isset($answer->success) == false) {
             return null;
         }
-
         return $answer->result;
     }
 
